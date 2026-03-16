@@ -14,10 +14,28 @@ export async function extractTextFromPdf(file: File): Promise<string> {
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
-    // IMPORTANT: Use hasEOL to preserve line breaks from the PDF.
-    // Without newlines, the parser's regex patterns (which use ^ with m flag) will fail.
-    const pageText = content.items
-      .map((item: any) => item.str + (item.hasEOL ? "\n" : ""))
+
+    // Sort items by position: top-to-bottom (descending y), then left-to-right (ascending x).
+    // PDF coordinate system has y=0 at bottom, so higher y = higher on page.
+    // Items on the same line share similar y values (within a tolerance).
+    const items = content.items
+      .filter((item: any) => item.str !== undefined)
+      .map((item: any) => ({
+        str: item.str as string,
+        hasEOL: item.hasEOL as boolean,
+        x: item.transform[4] as number,
+        y: item.transform[5] as number,
+      }));
+
+    // Group items into lines by y-coordinate (tolerance of 2 units for same line)
+    items.sort((a, b) => {
+      const yDiff = b.y - a.y; // descending y (top of page first)
+      if (Math.abs(yDiff) > 2) return yDiff;
+      return a.x - b.x; // ascending x (left to right)
+    });
+
+    const pageText = items
+      .map((item) => item.str + (item.hasEOL ? "\n" : ""))
       .join("");
     textParts.push(pageText);
   }
