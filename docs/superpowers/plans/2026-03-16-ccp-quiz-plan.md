@@ -6,7 +6,7 @@
 
 **Architecture:** Client-only SPA using Next.js App Router. PDF parsed in-browser with pdfjs-dist. State managed via React Context, persisted to localStorage for resume and wrong-answer retry. Three pages: upload, quiz, result.
 
-**Tech Stack:** Next.js 14 (App Router), TypeScript, Tailwind CSS, pdfjs-dist, Vitest + React Testing Library
+**Tech Stack:** Next.js 14 (App Router), TypeScript, Tailwind CSS, pdfjs-dist
 
 **Spec:** `docs/superpowers/specs/2026-03-16-ccp-quiz-design.md`
 
@@ -35,11 +35,7 @@ src/
     ├── pdf-parser.ts         # PDF text extraction + question parsing
     ├── storage.ts            # localStorage read/write/clear helpers
     ├── shuffle.ts            # Fisher-Yates shuffle
-    ├── hash.ts               # SHA-256 file hashing via Web Crypto API
-    └── __tests__/
-        ├── pdf-parser.test.ts
-        ├── storage.test.ts
-        └── shuffle.test.ts
+    └── hash.ts               # SHA-256 file hashing via Web Crypto API
 ```
 
 ---
@@ -64,48 +60,14 @@ Accept defaults. This scaffolds the project with App Router, TypeScript, and Tai
 
 ```bash
 npm install pdfjs-dist
-npm install -D vitest @testing-library/react @testing-library/jest-dom jsdom @vitejs/plugin-react
 ```
 
-- [ ] **Step 3: Create Vitest config**
+- [ ] **Step 3: Verify setup**
 
-Create `vitest.config.ts`:
+Run: `npm run build`
+Expected: Build succeeds.
 
-```ts
-import { defineConfig } from "vitest/config";
-import react from "@vitejs/plugin-react";
-
-export default defineConfig({
-  plugins: [react()],
-  test: {
-    environment: "jsdom",
-    globals: true,
-    setupFiles: ["./src/test-setup.ts"],
-  },
-});
-```
-
-Create `src/test-setup.ts`:
-
-```ts
-import "@testing-library/jest-dom/vitest";
-```
-
-- [ ] **Step 4: Add test script to package.json**
-
-Add to `scripts`:
-
-```json
-"test": "vitest run",
-"test:watch": "vitest"
-```
-
-- [ ] **Step 5: Verify setup**
-
-Run: `npm run build && npm test`
-Expected: Build succeeds, test runner finds no tests (exit 0 or "no tests found").
-
-- [ ] **Step 6: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
 git add -A
@@ -164,50 +126,12 @@ git commit -m "feat: add type definitions for Question and QuizRecord"
 
 ---
 
-### Task 3: Shuffle Utility (TDD)
+### Task 3: Shuffle Utility
 
 **Files:**
 - Create: `src/lib/shuffle.ts`
-- Test: `src/lib/__tests__/shuffle.test.ts`
 
-- [ ] **Step 1: Write failing test**
-
-```ts
-import { describe, it, expect } from "vitest";
-import { shuffleArray } from "../shuffle";
-
-describe("shuffleArray", () => {
-  it("returns an array of the same length", () => {
-    const input = [1, 2, 3, 4, 5];
-    const result = shuffleArray(input);
-    expect(result).toHaveLength(input.length);
-  });
-
-  it("contains all original elements", () => {
-    const input = [1, 2, 3, 4, 5];
-    const result = shuffleArray(input);
-    expect(result.sort()).toEqual(input.sort());
-  });
-
-  it("does not mutate the original array", () => {
-    const input = [1, 2, 3, 4, 5];
-    const copy = [...input];
-    shuffleArray(input);
-    expect(input).toEqual(copy);
-  });
-
-  it("returns empty array for empty input", () => {
-    expect(shuffleArray([])).toEqual([]);
-  });
-});
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `npx vitest run src/lib/__tests__/shuffle.test.ts`
-Expected: FAIL — cannot find `shuffleArray`
-
-- [ ] **Step 3: Write implementation**
+- [ ] **Step 1: Write implementation**
 
 ```ts
 export function shuffleArray<T>(array: T[]): T[] {
@@ -220,16 +144,11 @@ export function shuffleArray<T>(array: T[]): T[] {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `npx vitest run src/lib/__tests__/shuffle.test.ts`
-Expected: All 4 tests PASS
-
-- [ ] **Step 5: Commit**
+- [ ] **Step 2: Commit**
 
 ```bash
-git add src/lib/shuffle.ts src/lib/__tests__/shuffle.test.ts
-git commit -m "feat: add Fisher-Yates shuffle utility with tests"
+git add src/lib/shuffle.ts
+git commit -m "feat: add Fisher-Yates shuffle utility"
 ```
 
 ---
@@ -261,93 +180,12 @@ git commit -m "feat: add SHA-256 file hashing utility"
 
 ---
 
-### Task 5: localStorage Helpers (TDD)
+### Task 5: localStorage Helpers
 
 **Files:**
 - Create: `src/lib/storage.ts`
-- Test: `src/lib/__tests__/storage.test.ts`
 
-- [ ] **Step 1: Write failing tests**
-
-```ts
-import { describe, it, expect, beforeEach } from "vitest";
-import {
-  saveRecord,
-  loadRecord,
-  clearRecord,
-  saveQuestions,
-  loadQuestions,
-  clearQuestions,
-} from "../storage";
-import type { QuizRecord, Question } from "../types";
-
-beforeEach(() => {
-  localStorage.clear();
-});
-
-describe("QuizRecord storage", () => {
-  const mockRecord: QuizRecord = {
-    pdfHash: "abc123",
-    totalCount: 10,
-    shuffledIds: [3, 1, 2],
-    currentIndex: 1,
-    mode: "all",
-    results: {
-      3: { selected: ["A"], correct: true },
-    },
-    lastUpdated: "2026-03-16T00:00:00Z",
-  };
-
-  it("saves and loads a record", () => {
-    saveRecord(mockRecord);
-    expect(loadRecord()).toEqual(mockRecord);
-  });
-
-  it("returns null when no record exists", () => {
-    expect(loadRecord()).toBeNull();
-  });
-
-  it("clears a record", () => {
-    saveRecord(mockRecord);
-    clearRecord();
-    expect(loadRecord()).toBeNull();
-  });
-});
-
-describe("Questions storage", () => {
-  const mockQuestions: Question[] = [
-    {
-      id: 1,
-      text: "Test question",
-      options: [{ label: "A", text: "Option A" }],
-      correctAnswers: ["A"],
-      isMultiSelect: false,
-    },
-  ];
-
-  it("saves and loads questions", () => {
-    saveQuestions(mockQuestions);
-    expect(loadQuestions()).toEqual(mockQuestions);
-  });
-
-  it("returns null when no questions exist", () => {
-    expect(loadQuestions()).toBeNull();
-  });
-
-  it("clears questions", () => {
-    saveQuestions(mockQuestions);
-    clearQuestions();
-    expect(loadQuestions()).toBeNull();
-  });
-});
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `npx vitest run src/lib/__tests__/storage.test.ts`
-Expected: FAIL — cannot resolve imports
-
-- [ ] **Step 3: Write implementation**
+- [ ] **Step 1: Write implementation**
 
 ```ts
 import type { QuizRecord, Question } from "./types";
@@ -384,15 +222,10 @@ export function clearQuestions(): void {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `npx vitest run src/lib/__tests__/storage.test.ts`
-Expected: All 6 tests PASS
-
-- [ ] **Step 5: Commit**
+- [ ] **Step 2: Commit**
 
 ```bash
-git add src/lib/storage.ts src/lib/__tests__/storage.test.ts
+git add src/lib/storage.ts
 git commit -m "feat: add localStorage helpers for quiz record and questions"
 ```
 
@@ -400,112 +233,12 @@ git commit -m "feat: add localStorage helpers for quiz record and questions"
 
 ## Chunk 2: PDF Parser
 
-### Task 6: PDF Parser (TDD)
+### Task 6: PDF Parser
 
 **Files:**
 - Create: `src/lib/pdf-parser.ts`
-- Test: `src/lib/__tests__/pdf-parser.test.ts`
 
-- [ ] **Step 1: Write failing tests**
-
-```ts
-import { describe, it, expect } from "vitest";
-import { parseQuestions } from "../pdf-parser";
-
-const SINGLE_QUESTION = `QUESTION 1
-A company plans to use an Amazon Snowball Edge device to transfer files to the AWS Cloud.
-Which activity related to the Snowball Edge device is available at no cost?
-A. Use of the Snowball Edge device for 10 days
-B. Transfer of data from Amazon S3 to the Snowball Edge device
-C. Transfer of data from the Snowball Edge device to Amazon S3
-D. Daily use of the Snowball Edge device after 10 days
-Correct Answer: A
-Explanation
-Explanation/Reference:
-Ref https://example.com`;
-
-const MULTI_ANSWER_QUESTION = `QUESTION 2
-Which TWO services are serverless? (Select TWO.)
-A. Amazon EC2
-B. AWS Lambda
-C. Amazon RDS
-D. AWS Fargate
-E. Amazon EMR
-Correct Answer: BD
-Explanation
-Explanation/Reference:
-Some explanation`;
-
-const TWO_QUESTIONS = `${SINGLE_QUESTION}
-
-${MULTI_ANSWER_QUESTION}`;
-
-describe("parseQuestions", () => {
-  it("parses a single question correctly", () => {
-    const questions = parseQuestions(SINGLE_QUESTION);
-    expect(questions).toHaveLength(1);
-    expect(questions[0].id).toBe(1);
-    expect(questions[0].text).toContain("Snowball Edge");
-    expect(questions[0].options).toHaveLength(4);
-    expect(questions[0].options[0]).toEqual({
-      label: "A",
-      text: "Use of the Snowball Edge device for 10 days",
-    });
-    expect(questions[0].correctAnswers).toEqual(["A"]);
-    expect(questions[0].isMultiSelect).toBe(false);
-  });
-
-  it("parses multi-answer questions", () => {
-    const questions = parseQuestions(MULTI_ANSWER_QUESTION);
-    expect(questions).toHaveLength(1);
-    expect(questions[0].options).toHaveLength(5);
-    expect(questions[0].correctAnswers).toEqual(["B", "D"]);
-    expect(questions[0].isMultiSelect).toBe(true);
-  });
-
-  it("parses multiple questions", () => {
-    const questions = parseQuestions(TWO_QUESTIONS);
-    expect(questions).toHaveLength(2);
-    expect(questions[0].id).toBe(1);
-    expect(questions[1].id).toBe(2);
-  });
-
-  it("returns empty array for empty input", () => {
-    expect(parseQuestions("")).toEqual([]);
-  });
-
-  it("skips malformed questions without correct answer", () => {
-    const malformed = `QUESTION 1
-Some question text
-A. Option A
-B. Option B`;
-    const questions = parseQuestions(malformed);
-    expect(questions).toEqual([]);
-  });
-
-  it("handles Correct Answer with comma-separated format", () => {
-    const text = `QUESTION 1
-Which two?
-A. Opt A
-B. Opt B
-C. Opt C
-D. Opt D
-Correct Answer: A, C
-Explanation
-Ref`;
-    const questions = parseQuestions(text);
-    expect(questions[0].correctAnswers).toEqual(["A", "C"]);
-    expect(questions[0].isMultiSelect).toBe(true);
-  });
-});
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `npx vitest run src/lib/__tests__/pdf-parser.test.ts`
-Expected: FAIL — cannot find `parseQuestions`
-
-- [ ] **Step 3: Write implementation**
+- [ ] **Step 1: Write implementation**
 
 ```ts
 import type { Question } from "./types";
@@ -587,15 +320,10 @@ function parseBlock(block: string): Question | null {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `npx vitest run src/lib/__tests__/pdf-parser.test.ts`
-Expected: All 6 tests PASS
-
-- [ ] **Step 5: Commit**
+- [ ] **Step 2: Commit**
 
 ```bash
-git add src/lib/pdf-parser.ts src/lib/__tests__/pdf-parser.test.ts
+git add src/lib/pdf-parser.ts
 git commit -m "feat: add PDF question parser with multi-answer support"
 ```
 
@@ -1669,12 +1397,7 @@ const nextConfig: NextConfig = {
 export default nextConfig;
 ```
 
-- [ ] **Step 2: Run all tests**
-
-Run: `npm test`
-Expected: All tests pass (shuffle, storage, pdf-parser).
-
-- [ ] **Step 3: Run the dev server and manually test**
+- [ ] **Step 2: Run the dev server and manually test**
 
 Run: `npm run dev`
 Test with an actual CCP PDF:
@@ -1685,7 +1408,7 @@ Test with an actual CCP PDF:
 5. Complete quiz — check `/result`
 6. Try "틀린 문제만 다시 풀기"
 
-- [ ] **Step 4: Fix any pdfjs-dist worker issues**
+- [ ] **Step 3: Fix any pdfjs-dist worker issues**
 
 If the worker fails to load, try setting the worker source to a CDN:
 
@@ -1693,12 +1416,12 @@ If the worker fails to load, try setting the worker source to a CDN:
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 ```
 
-- [ ] **Step 5: Build for production**
+- [ ] **Step 4: Build for production**
 
 Run: `npm run build`
 Expected: Build succeeds with no errors.
 
-- [ ] **Step 6: Final commit**
+- [ ] **Step 5: Final commit**
 
 ```bash
 git add -A
