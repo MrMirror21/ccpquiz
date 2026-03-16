@@ -50,6 +50,21 @@ Explanation/Reference:
    - Correct answer: value after `Correct Answer:`
    - Ignore everything after `Explanation`
 
+### Multi-Answer Questions
+
+Some questions are "select TWO/THREE" style. The correct answer field may contain multiple letters (e.g., `Correct Answer: AC` or `Correct Answer: A, C`). The parser normalizes these into an array of single letters.
+
+- UI: multi-select questions use checkboxes; single-answer questions use radio buttons.
+- A "Submit" button appears for multi-select questions (user selects all choices, then submits).
+- Scoring: all-or-nothing. Partial selections are scored as wrong.
+
+### Parsing Error Handling
+
+- **Invalid file type:** Reject non-PDF files immediately with an error message.
+- **Zero questions parsed:** Show error "No questions found. Please check the PDF format."
+- **Partial failures:** Skip malformed questions silently. Show "N questions parsed (M skipped)" so the user knows.
+- **Image-based PDFs:** `pdfjs-dist` extracts no text. Falls into the "zero questions" case above.
+
 ### Data Structure
 
 ```ts
@@ -57,7 +72,8 @@ interface Question {
   id: number;
   text: string;
   options: { label: string; text: string }[];
-  correctAnswer: string;
+  correctAnswers: string[];  // ["A"] for single, ["A","C"] for multi
+  isMultiSelect: boolean;
 }
 ```
 
@@ -80,20 +96,30 @@ Key: `ccpquiz-record`
 
 ```ts
 interface QuizRecord {
+  pdfHash: string;            // SHA-256 hash of uploaded file for identity check
   totalCount: number;
+  shuffledIds: number[];      // persisted shuffle order for resume
+  currentIndex: number;       // persisted progress index
+  mode: "all" | "wrong-only";
   results: {
     [questionId: number]: {
-      selected: string;
+      selected: string[];     // user's selected answers
       correct: boolean;
     };
   };
-  lastUpdated: string; // ISO timestamp
+  lastUpdated: string;        // ISO timestamp
 }
 ```
 
-- Saved immediately after each answer
-- Cleared on new PDF upload
+- Saved immediately after each answer (including shuffledIds and currentIndex)
+- On new PDF upload: compare `pdfHash`. If different, discard old record. If same, offer resume.
 - "Wrong only" mode filters `correct: false` entries
+
+### Navigation Guards & Refresh Handling
+
+- **Direct navigation to `/quiz` or `/result` without data:** Redirect to `/`.
+- **Page refresh mid-quiz:** Parsed questions are also persisted to localStorage (key: `ccpquiz-questions`). On refresh, restore questions + shuffle order + progress from localStorage. User resumes exactly where they left off.
+- **Estimated localStorage size:** ~719 questions serialized to JSON is well under 1 MB. No size concerns.
 
 ## UI/UX Flow
 
@@ -111,9 +137,10 @@ interface QuizRecord {
 - Top: progress bar (current / total)
 - Question text
 - 4-6 option buttons
-- On option click:
-  - Correct: green highlight on selected
-  - Wrong: red highlight on selected + green on correct answer
+- Single-answer: radio buttons. Multi-select: checkboxes + "Submit" button.
+- On answer submit:
+  - Correct: green highlight on selected + checkmark icon
+  - Wrong: red highlight on selected + green on correct answer + X icon
 - "Next" button appears after answering
 - After last question: auto-navigate to result
 
