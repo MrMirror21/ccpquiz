@@ -1,65 +1,164 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
+import FileUpload from "@/components/FileUpload";
+import { useQuiz } from "@/context/QuizContext";
+import { extractTextFromPdf } from "@/lib/pdf-extract";
+import { parseQuestions } from "@/lib/pdf-parser";
+import { hashFile } from "@/lib/hash";
+import type { Question } from "@/lib/types";
+
+export default function UploadPage() {
+  const router = useRouter();
+  const { startQuiz, resumeQuiz, questions, record, isLoaded } = useQuiz();
+  const [isLoading, setIsLoading] = useState(false);
+  const [parseResult, setParseResult] = useState<{
+    total: number;
+    skipped: number;
+    pdfHash: string;
+  } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Use ref to hold parsed questions between upload and start (avoids global mutable)
+  const parsedQuestionsRef = useRef<Question[]>([]);
+  const pdfHashRef = useRef<string>("");
+
+  const handleFileSelected = useCallback(async (file: File) => {
+    setIsLoading(true);
+    setError(null);
+    setParseResult(null);
+
+    try {
+      const [rawText, pdfHash] = await Promise.all([
+        extractTextFromPdf(file),
+        hashFile(file),
+      ]);
+
+      const parsed = parseQuestions(rawText);
+
+      if (parsed.length === 0) {
+        setError("문제를 찾을 수 없습니다. PDF 형식을 확인해주세요.");
+        return;
+      }
+
+      const totalBlocks = (rawText.match(/QUESTION\s+\d+/g) || []).length;
+      const skipped = totalBlocks - parsed.length;
+
+      parsedQuestionsRef.current = parsed;
+      pdfHashRef.current = pdfHash;
+      setParseResult({ total: parsed.length, skipped, pdfHash });
+    } catch {
+      setError("PDF를 읽는 중 오류가 발생했습니다.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const handleStart = useCallback(
+    (mode: "all" | "wrong-only") => {
+      const parsed = parsedQuestionsRef.current;
+      const pdfHash = pdfHashRef.current;
+      if (parsed.length === 0 || !pdfHash) return;
+      startQuiz(parsed, pdfHash, mode);
+      router.push("/quiz");
+    },
+    [startQuiz, router]
+  );
+
+  // Resume from existing localStorage record
+  const handleResume = useCallback(() => {
+    if (resumeQuiz()) {
+      router.push("/quiz");
+    }
+  }, [resumeQuiz, router]);
+
+  // Wrong-only retry from existing record (uses questions already in context, not from ref)
+  const handleRetryWrong = useCallback(() => {
+    if (record && questions.length > 0) {
+      startQuiz(questions, record.pdfHash, "wrong-only");
+      router.push("/quiz");
+    }
+  }, [startQuiz, questions, record, router]);
+
+  if (!isLoaded) return null;
+
+  // Derive resume state from context (not from direct localStorage read)
+  const hasExistingRecord = !!record && questions.length > 0;
+  const wrongCount = record
+    ? Object.values(record.results).filter((r) => !r.correct).length
+    : 0;
+  const answeredCount = record
+    ? Object.keys(record.results).length
+    : 0;
+
+  // Check if newly uploaded PDF matches existing record
+  const isSamePdf = parseResult && record && parseResult.pdfHash === record.pdfHash;
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="max-w-xl w-full space-y-6">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-gray-900">AWS CCP Quiz</h1>
+          <p className="mt-2 text-gray-500">CLF-C02 문제은행</p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+
+        <FileUpload onFileSelected={handleFileSelected} isLoading={isLoading} />
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
+            {error}
+          </div>
+        )}
+
+        {parseResult && (
+          <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
+            <p className="text-lg">
+              <span className="font-semibold text-blue-600">{parseResult.total}개</span> 문제 파싱 완료
+              {parseResult.skipped > 0 && (
+                <span className="text-sm text-gray-400 ml-2">
+                  ({parseResult.skipped}개 건너뜀)
+                </span>
+              )}
+            </p>
+            <button
+              onClick={() => handleStart("all")}
+              className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            >
+              시작하기
+            </button>
+            {/* If same PDF as before, offer resume with new upload too */}
+            {isSamePdf && answeredCount > 0 && (
+              <button
+                onClick={handleResume}
+                className="w-full py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+              >
+                이어서 풀기 ({answeredCount}/{record!.totalCount} 완료)
+              </button>
+            )}
+          </div>
+        )}
+
+        {hasExistingRecord && !parseResult && (
+          <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-3">
+            <p className="text-sm text-gray-500">이전 학습 기록이 있습니다</p>
+            <button
+              onClick={handleResume}
+              className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            >
+              이어서 풀기 ({answeredCount}/{record!.totalCount} 완료)
+            </button>
+            {wrongCount > 0 && (
+              <button
+                onClick={handleRetryWrong}
+                className="w-full py-3 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 transition-colors"
+              >
+                틀린 문제만 풀기 ({wrongCount}개)
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </main>
   );
 }
