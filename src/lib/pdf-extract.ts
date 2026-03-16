@@ -1,12 +1,12 @@
-import * as pdfjsLib from "pdfjs-dist";
-
-// Use the bundled worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.min.mjs",
-  import.meta.url
-).toString();
-
 export async function extractTextFromPdf(file: File): Promise<string> {
+  // Dynamic import to avoid SSR issues (pdfjs-dist requires DOM APIs like DOMMatrix)
+  const pdfjsLib = await import("pdfjs-dist");
+
+  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+    "pdfjs-dist/build/pdf.worker.min.mjs",
+    import.meta.url
+  ).toString();
+
   const buffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
 
