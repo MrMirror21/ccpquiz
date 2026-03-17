@@ -1,39 +1,10 @@
-function installPolyfills() {
-  if (typeof Promise.withResolvers !== "function") {
-    (Promise as any).withResolvers = function <T>() {
-      let resolve!: (value: T | PromiseLike<T>) => void;
-      let reject!: (reason?: unknown) => void;
-      const promise = new Promise<T>((res, rej) => {
-        resolve = res;
-        reject = rej;
-      });
-      return { promise, resolve, reject };
-    };
-  }
-
-  if (typeof Array.prototype.at !== "function") {
-    (Array.prototype as any).at = function (n: number) {
-      n = Math.trunc(n) || 0;
-      if (n < 0) n += this.length;
-      if (n < 0 || n >= this.length) return undefined;
-      return this[n];
-    };
-  }
-
-  if (typeof globalThis.structuredClone !== "function") {
-    // Minimal polyfill — sufficient for pdfjs-dist's internal cloning needs
-    globalThis.structuredClone = ((obj: unknown) =>
-      JSON.parse(JSON.stringify(obj))) as typeof structuredClone;
-  }
-}
-
 export async function extractTextFromPdf(file: File): Promise<string> {
-  installPolyfills();
+  // Import worker directly into main thread — bypasses Web Worker creation
+  // which fails on some mobile browsers (iOS WebKit).
+  const pdfjsWorker = await import("pdfjs-dist/build/pdf.worker.mjs");
+  (globalThis as any).pdfjsWorker = pdfjsWorker;
 
-  // Dynamic import to avoid SSR issues (pdfjs-dist requires DOM APIs like DOMMatrix)
   const pdfjsLib = await import("pdfjs-dist");
-
-  pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 
   const buffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
