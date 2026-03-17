@@ -1,6 +1,6 @@
 export async function extractTextFromPdf(file: File): Promise<string> {
   // Dynamic import to avoid SSR issues (pdfjs-dist requires DOM APIs like DOMMatrix)
-  const pdfjsLib = await import("pdfjs-dist");
+  const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
 
   pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 

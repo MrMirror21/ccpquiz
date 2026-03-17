@@ -50,7 +50,8 @@ export default function UploadPage() {
       setParseResult({ total: parsed.length, skipped, pdfHash });
     } catch (e) {
       console.error("PDF parse error:", e);
-      setError("PDF를 읽는 중 오류가 발생했습니다.");
+      const detail = e instanceof Error ? e.message : String(e);
+      setError(`PDF를 읽는 중 오류가 발생했습니다: ${detail}`);
     } finally {
       setIsLoading(false);
     }
