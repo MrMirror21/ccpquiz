@@ -48,7 +48,8 @@ export default function UploadPage() {
       parsedQuestionsRef.current = parsed;
       pdfHashRef.current = pdfHash;
       setParseResult({ total: parsed.length, skipped, pdfHash });
-    } catch {
+    } catch (e) {
+      console.error("PDF parse error:", e);
       setError("PDF를 읽는 중 오류가 발생했습니다.");
     } finally {
       setIsLoading(false);
