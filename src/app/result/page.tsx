@@ -46,6 +46,12 @@ export default function ResultPage() {
   return (
     <main className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-2xl mx-auto space-y-6 py-8">
+        <button
+          onClick={() => router.push("/")}
+          className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
+        >
+          &larr; 홈
+        </button>
         <h1 className="text-2xl font-bold text-gray-900 text-center">결과</h1>
 
         <ResultSummary record={record} questions={questions} />
