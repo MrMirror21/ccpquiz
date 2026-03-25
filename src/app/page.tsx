@@ -50,8 +50,9 @@ export default function UploadPage() {
       setParseResult({ total: parsed.length, skipped, pdfHash });
     } catch (e) {
       console.error("PDF parse error:", e);
-      const detail = e instanceof Error ? e.message : String(e);
-      setError(`PDF를 읽는 중 오류가 발생했습니다: ${detail}`);
+      const message = e instanceof Error ? e.message : String(e);
+      const stack = e instanceof Error && e.stack ? e.stack : "";
+      setError(`PDF를 읽는 중 오류가 발생했습니다:\n${message}${stack ? "\n\n" + stack : ""}`);
     } finally {
       setIsLoading(false);
     }
@@ -108,7 +109,7 @@ export default function UploadPage() {
         <FileUpload onFileSelected={handleFileSelected} isLoading={isLoading} />
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
+          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg whitespace-pre-wrap break-all text-sm font-mono">
             {error}
           </div>
         )}

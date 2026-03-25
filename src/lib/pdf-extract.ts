@@ -1,10 +1,11 @@
 export async function extractTextFromPdf(file: File): Promise<string> {
+  // Use legacy builds — the modern builds use JS features unsupported by mobile Safari.
   // Import worker directly into main thread — bypasses Web Worker creation
   // which fails on some mobile browsers (iOS WebKit).
-  const pdfjsWorker = await import("pdfjs-dist/build/pdf.worker.mjs");
+  const pdfjsWorker = await import("pdfjs-dist/legacy/build/pdf.worker.mjs");
   (globalThis as any).pdfjsWorker = pdfjsWorker;
 
-  const pdfjsLib = await import("pdfjs-dist");
+  const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
 
   const buffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
