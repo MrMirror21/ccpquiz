@@ -194,7 +194,7 @@ export default function QuizPage() {
                 {overTime && <span className="ml-1 text-xs">(초과)</span>}
               </span>
             )}
-            <span className="text-xs text-gray-400">v0.6.0</span>
+            <span className="text-xs text-gray-400">v0.7.0</span>
           </div>
         </div>
 
