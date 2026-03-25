@@ -126,6 +126,12 @@ export default function QuizPage() {
                   실시간 통계(정답/오답/정답률)와 즉시 정답 확인 기능은 기본적으로 <strong>비활성화</strong>되어 있으며, 시험 중 상단 토글 버튼으로 켜고 끌 수 있습니다.
                 </span>
               </li>
+              <li className="flex gap-3">
+                <span className="shrink-0 w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold">5</span>
+                <span>
+                  모의고사는 <strong>이어서 풀기를 지원하지 않습니다.</strong> 시작하면 처음부터 끝까지 완료해야 합니다.
+                </span>
+              </li>
             </ul>
           </div>
 

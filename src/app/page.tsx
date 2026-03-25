@@ -140,8 +140,8 @@ export default function UploadPage() {
             >
               전체 회독 ({parseResult.total}문제)
             </button>
-            {/* If same PDF as before, offer resume with new upload too */}
-            {isSamePdf && answeredCount > 0 && (
+            {/* If same PDF as before and not mock, offer resume */}
+            {isSamePdf && answeredCount > 0 && record!.mode !== "mock" && (
               <button
                 onClick={handleResume}
                 className="w-full py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors"
@@ -155,12 +155,14 @@ export default function UploadPage() {
         {hasExistingRecord && !parseResult && (
           <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-3">
             <p className="text-sm text-gray-500">이전 학습 기록이 있습니다</p>
-            <button
-              onClick={handleResume}
-              className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-            >
-              이어서 풀기 ({answeredCount}/{record!.totalCount} 완료)
-            </button>
+            {record!.mode !== "mock" && (
+              <button
+                onClick={handleResume}
+                className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              >
+                이어서 풀기 ({answeredCount}/{record!.totalCount} 완료)
+              </button>
+            )}
             {wrongCount > 0 && (
               <button
                 onClick={handleRetryWrong}
