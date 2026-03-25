@@ -1,4 +1,41 @@
+// pdfjs-dist v5 "legacy" build still uses ReadableStream async iteration
+// and Promise.withResolvers internally — polyfill for mobile WebKit.
+function installPolyfills() {
+  if (
+    typeof ReadableStream !== "undefined" &&
+    !(ReadableStream.prototype as any)[Symbol.asyncIterator]
+  ) {
+    (ReadableStream.prototype as any)[Symbol.asyncIterator] =
+      async function* () {
+        const reader = this.getReader();
+        try {
+          for (;;) {
+            const { done, value } = await reader.read();
+            if (done) return;
+            yield value;
+          }
+        } finally {
+          reader.releaseLock();
+        }
+      };
+  }
+
+  if (typeof Promise.withResolvers !== "function") {
+    (Promise as any).withResolvers = function <T>() {
+      let resolve!: (v: T | PromiseLike<T>) => void;
+      let reject!: (r?: unknown) => void;
+      const promise = new Promise<T>((res, rej) => {
+        resolve = res;
+        reject = rej;
+      });
+      return { promise, resolve, reject };
+    };
+  }
+}
+
 export async function extractTextFromPdf(file: File): Promise<string> {
+  installPolyfills();
+
   // Use legacy builds — the modern builds use JS features unsupported by mobile Safari.
   // Import worker directly into main thread — bypasses Web Worker creation
   // which fails on some mobile browsers (iOS WebKit).
