@@ -169,6 +169,17 @@ export default function UploadPage() {
                 틀린 문제만 풀기 ({wrongCount}개)
               </button>
             )}
+            {questions.length >= MOCK_EXAM_COUNT && (
+              <button
+                onClick={() => {
+                  startQuiz(questions, record!.pdfHash, "mock");
+                  router.push("/quiz");
+                }}
+                className="w-full py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors"
+              >
+                모의고사 ({MOCK_EXAM_COUNT}문제)
+              </button>
+            )}
           </div>
         )}
       </div>
