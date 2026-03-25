@@ -48,6 +48,7 @@ export default function QuizPage() {
   return (
     <main className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-2xl mx-auto space-y-6 py-8">
+        <p className="text-xs text-gray-400 text-right">v0.5.0</p>
         <ProgressBar
           current={currentIndex + 1}
           total={shuffledIds.length}
