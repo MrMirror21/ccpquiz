@@ -105,7 +105,7 @@ export default function UploadPage() {
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900">AWS CCP Quiz</h1>
           <p className="mt-2 text-gray-500">CLF-C02 문제은행</p>
-          <p className="mt-1 text-xs text-gray-400">v0.5.0</p>
+          <p className="mt-1 text-xs text-gray-400">v0.6.0</p>
         </div>
 
         <FileUpload onFileSelected={handleFileSelected} isLoading={isLoading} />
