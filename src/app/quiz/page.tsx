@@ -26,6 +26,7 @@ export default function QuizPage() {
     getCurrentQuestion,
     submitAnswer,
     nextQuestion,
+    goToQuestion,
   } = useQuiz();
 
   const isMock = mode === "mock";
@@ -33,9 +34,8 @@ export default function QuizPage() {
   // Mock intro gate
   const [mockStarted, setMockStarted] = useState(false);
 
-  // Mock mode toggles (default OFF for exam-like experience)
-  const [showStats, setShowStats] = useState(false);
-  const [showFeedback, setShowFeedback] = useState(false);
+  // Expandable question navigator (mock only)
+  const [navOpen, setNavOpen] = useState(false);
 
   // Timer for mock mode
   const [elapsed, setElapsed] = useState(0);
@@ -60,6 +60,7 @@ export default function QuizPage() {
   }, [isLoaded, shuffledIds.length, router]);
 
   const question = getCurrentQuestion();
+  const isFirst = currentIndex === 0;
   const isLast = currentIndex >= shuffledIds.length - 1;
 
   const results = record ? Object.values(record.results) : [];
@@ -67,6 +68,12 @@ export default function QuizPage() {
   const wrongCount = results.filter((r) => !r.correct).length;
   const answeredCount = results.length;
   const accuracy = answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : 0;
+
+  // Get previous answer for current question (for mock navigation)
+  const currentQuestionId = question?.id;
+  const previousAnswer = currentQuestionId && record?.results[currentQuestionId]
+    ? record.results[currentQuestionId].selected
+    : undefined;
 
   const handleSubmit = useCallback(
     (selected: string[]): boolean => {
@@ -82,13 +89,24 @@ export default function QuizPage() {
     }
   }, [nextQuestion, router]);
 
+  const handleMockPrev = useCallback(() => {
+    if (currentIndex > 0) goToQuestion(currentIndex - 1);
+  }, [currentIndex, goToQuestion]);
+
+  const handleMockNext = useCallback(() => {
+    if (currentIndex < shuffledIds.length - 1) goToQuestion(currentIndex + 1);
+  }, [currentIndex, shuffledIds.length, goToQuestion]);
+
+  const handleMockFinish = useCallback(() => {
+    router.push("/result");
+  }, [router]);
+
   if (!isLoaded || shuffledIds.length === 0 || !question) {
     return null;
   }
 
   // Mock intro screen
   if (isMock && !mockStarted) {
-    const overTime = elapsed > MOCK_TIME_LIMIT;
     return (
       <main className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="max-w-lg w-full space-y-8">
@@ -123,7 +141,8 @@ export default function QuizPage() {
               <li className="flex gap-3">
                 <span className="shrink-0 w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold">4</span>
                 <span>
-                  실시간 통계(정답/오답/정답률)와 즉시 정답 확인 기능은 기본적으로 <strong>비활성화</strong>되어 있으며, 시험 중 상단 토글 버튼으로 켜고 끌 수 있습니다.
+                  문제 간 <strong>자유롭게 이동</strong>하고 <strong>답안을 수정</strong>할 수 있습니다.
+                  모든 문제에 응답해야 <strong>시험 제출</strong>이 가능합니다.
                 </span>
               </li>
               <li className="flex gap-3">
@@ -153,9 +172,9 @@ export default function QuizPage() {
     );
   }
 
-  const statsVisible = isMock ? showStats : true;
-  const feedbackVisible = isMock ? showFeedback : true;
   const overTime = isMock && elapsed > MOCK_TIME_LIMIT;
+  const unansweredCount = shuffledIds.length - answeredCount;
+  const allAnswered = unansweredCount === 0;
 
   return (
     <main className="min-h-screen bg-gray-50 p-4">
@@ -184,34 +203,63 @@ export default function QuizPage() {
           total={shuffledIds.length}
         />
 
-        {/* Mock mode toggles */}
+        {/* Mock: expandable question navigator */}
         {isMock && (
-          <div className="flex justify-center gap-4 text-xs">
+          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
             <button
-              onClick={() => setShowStats((v) => !v)}
-              className={`px-3 py-1 rounded-full border transition-colors ${
-                showStats
-                  ? "border-indigo-400 bg-indigo-50 text-indigo-600"
-                  : "border-gray-300 text-gray-400"
-              }`}
+              onClick={() => setNavOpen((v) => !v)}
+              className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
             >
-              통계 {showStats ? "ON" : "OFF"}
+              <span>
+                문제 목록
+                <span className="ml-2 text-xs text-gray-400">
+                  ({answeredCount}/{shuffledIds.length} 응답)
+                </span>
+              </span>
+              <span className={`text-xs transition-transform ${navOpen ? "rotate-180" : ""}`}>
+                ▼
+              </span>
             </button>
-            <button
-              onClick={() => setShowFeedback((v) => !v)}
-              className={`px-3 py-1 rounded-full border transition-colors ${
-                showFeedback
-                  ? "border-indigo-400 bg-indigo-50 text-indigo-600"
-                  : "border-gray-300 text-gray-400"
-              }`}
-            >
-              즉시 정답 {showFeedback ? "ON" : "OFF"}
-            </button>
+            {navOpen && (
+              <div className="px-4 pb-4 pt-1">
+                <div className="grid grid-cols-10 gap-1.5">
+                  {shuffledIds.map((qid, idx) => {
+                    const answered = !!record?.results[qid];
+                    const isCurrent = idx === currentIndex;
+                    let bg: string;
+                    if (isCurrent) {
+                      bg = "bg-indigo-600 text-white border-indigo-600";
+                    } else if (answered) {
+                      bg = "bg-blue-100 text-blue-700 border-blue-300";
+                    } else {
+                      bg = "bg-gray-50 text-gray-400 border-gray-200";
+                    }
+                    return (
+                      <button
+                        key={qid}
+                        onClick={() => {
+                          goToQuestion(idx);
+                          setNavOpen(false);
+                        }}
+                        className={`border rounded text-center text-xs font-medium py-1.5 transition-colors hover:opacity-80 ${bg}`}
+                      >
+                        {idx + 1}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="flex gap-3 mt-3 text-xs text-gray-400">
+                  <span className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-indigo-600" /> 현재</span>
+                  <span className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-blue-100 border border-blue-300" /> 응답 완료</span>
+                  <span className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-gray-50 border border-gray-200" /> 미응답</span>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Stats bar */}
-        {statsVisible && answeredCount > 0 && (
+        {/* Stats bar (non-mock only) */}
+        {!isMock && answeredCount > 0 && (
           <div className="flex justify-center gap-4 text-sm">
             <span className="text-green-600 font-medium">맞춘 문제 {correctCount}</span>
             <span className="text-red-500 font-medium">틀린 문제 {wrongCount}</span>
@@ -225,8 +273,44 @@ export default function QuizPage() {
           onSubmit={handleSubmit}
           onNext={handleNext}
           isLast={isLast}
-          showFeedback={feedbackVisible}
+          showFeedback={!isMock}
+          editable={isMock}
+          initialSelected={isMock ? previousAnswer : undefined}
         />
+
+        {/* Mock mode navigation */}
+        {isMock && (
+          <div className="space-y-3">
+            <div className="flex gap-3">
+              <button
+                onClick={handleMockPrev}
+                disabled={isFirst}
+                className="flex-1 py-2.5 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                &larr; 이전
+              </button>
+              <button
+                onClick={handleMockNext}
+                disabled={isLast}
+                className="flex-1 py-2.5 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                다음 &rarr;
+              </button>
+            </div>
+            <button
+              onClick={handleMockFinish}
+              disabled={!allAnswered}
+              className="w-full py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              시험 제출
+              {!allAnswered && (
+                <span className="ml-2 text-indigo-200 text-sm">
+                  (미응답 {unansweredCount}문제)
+                </span>
+              )}
+            </button>
+          </div>
+        )}
       </div>
     </main>
   );
