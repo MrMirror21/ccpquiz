@@ -12,6 +12,7 @@ export default function QuizPage() {
     shuffledIds,
     currentIndex,
     isLoaded,
+    record,
     getCurrentQuestion,
     submitAnswer,
     nextQuestion,
@@ -26,6 +27,12 @@ export default function QuizPage() {
 
   const question = getCurrentQuestion();
   const isLast = currentIndex >= shuffledIds.length - 1;
+
+  const results = record ? Object.values(record.results) : [];
+  const correctCount = results.filter((r) => r.correct).length;
+  const wrongCount = results.filter((r) => !r.correct).length;
+  const answeredCount = results.length;
+  const accuracy = answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : 0;
 
   const handleSubmit = useCallback(
     (selected: string[]): boolean => {
@@ -53,6 +60,13 @@ export default function QuizPage() {
           current={currentIndex + 1}
           total={shuffledIds.length}
         />
+        {answeredCount > 0 && (
+          <div className="flex justify-center gap-4 text-sm">
+            <span className="text-green-600 font-medium">맞춘 문제 {correctCount}</span>
+            <span className="text-red-500 font-medium">틀린 문제 {wrongCount}</span>
+            <span className="text-gray-600 font-medium">정답률 {accuracy}%</span>
+          </div>
+        )}
         <QuestionCard
           key={question.id}
           question={question}
