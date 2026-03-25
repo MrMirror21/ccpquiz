@@ -53,7 +53,9 @@ export default function UploadPage() {
       console.error("PDF parse error:", e);
       const message = e instanceof Error ? e.message : String(e);
       const stack = e instanceof Error && e.stack ? e.stack : "";
-      setError(`PDF를 읽는 중 오류가 발생했습니다:\n${message}${stack ? "\n\n" + stack : ""}`);
+      setError(
+        `PDF를 읽는 중 오류가 발생했습니다:\n${message}${stack ? "\n\n" + stack : ""}`,
+      );
     } finally {
       setIsLoading(false);
     }
@@ -67,7 +69,7 @@ export default function UploadPage() {
       startQuiz(parsed, pdfHash, mode);
       router.push("/quiz");
     },
-    [startQuiz, router]
+    [startQuiz, router],
   );
 
   // Resume from existing localStorage record
@@ -92,12 +94,11 @@ export default function UploadPage() {
   const wrongCount = record
     ? Object.values(record.results).filter((r) => !r.correct).length
     : 0;
-  const answeredCount = record
-    ? Object.keys(record.results).length
-    : 0;
+  const answeredCount = record ? Object.keys(record.results).length : 0;
 
   // Check if newly uploaded PDF matches existing record
-  const isSamePdf = parseResult && record && parseResult.pdfHash === record.pdfHash;
+  const isSamePdf =
+    parseResult && record && parseResult.pdfHash === record.pdfHash;
 
   return (
     <main className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -105,7 +106,10 @@ export default function UploadPage() {
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900">AWS CCP Quiz</h1>
           <p className="mt-2 text-gray-500">CLF-C02 문제은행</p>
-          <p className="mt-1 text-xs text-gray-400">v0.6.0</p>
+          <p className="mt-1 text-xs text-gray-700">v0.6.0 </p>
+          <p className="mt-1 text-sm text-gray-700">
+            에러, 버그 제보 - woojhan@koreanair.com
+          </p>
         </div>
 
         <FileUpload onFileSelected={handleFileSelected} isLoading={isLoading} />
@@ -119,7 +123,10 @@ export default function UploadPage() {
         {parseResult && (
           <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
             <p className="text-lg">
-              <span className="font-semibold text-blue-600">{parseResult.total}개</span> 문제 파싱 완료
+              <span className="font-semibold text-blue-600">
+                {parseResult.total}개
+              </span>{" "}
+              문제 파싱 완료
               {parseResult.skipped > 0 && (
                 <span className="text-sm text-gray-400 ml-2">
                   ({parseResult.skipped}개 건너뜀)
