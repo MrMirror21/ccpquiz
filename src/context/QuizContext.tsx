@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import type { Question, QuizRecord, QuizMode } from "@/lib/types";
-import { MOCK_EXAM_COUNT } from "@/lib/types";
+import { MOCK_EXAM_COUNT, MOCK_UNSCORED_COUNT } from "@/lib/types";
 import { shuffleArray } from "@/lib/shuffle";
 import {
   saveRecord,
@@ -76,8 +76,10 @@ export function QuizProvider({ children }: { children: ReactNode }) {
 
       let ids = shuffleArray(targetQuestions.map((q) => q.id));
 
+      let unscoredIds: number[] | undefined;
       if (newMode === "mock") {
         ids = ids.slice(0, MOCK_EXAM_COUNT);
+        unscoredIds = shuffleArray([...ids]).slice(0, MOCK_UNSCORED_COUNT);
       }
       const newRecord: QuizRecord = {
         pdfHash,
@@ -85,6 +87,7 @@ export function QuizProvider({ children }: { children: ReactNode }) {
         shuffledIds: ids,
         currentIndex: 0,
         mode: newMode,
+        ...(unscoredIds && { unscoredIds }),
         results: {},
         lastUpdated: new Date().toISOString(),
       };

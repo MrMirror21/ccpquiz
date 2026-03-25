@@ -12,6 +12,7 @@ export interface QuizRecord {
   shuffledIds: number[];
   currentIndex: number;
   mode: QuizMode;
+  unscoredIds?: number[];
   results: {
     [questionId: number]: {
       selected: string[];
@@ -31,3 +32,5 @@ export interface QuizState {
 export type QuizMode = "all" | "wrong-only" | "mock";
 
 export const MOCK_EXAM_COUNT = 65;
+export const MOCK_UNSCORED_COUNT = 15;
+export const MOCK_SCORED_COUNT = MOCK_EXAM_COUNT - MOCK_UNSCORED_COUNT;
