@@ -20,6 +20,7 @@ export default function ResultPage() {
     return null;
   }
 
+  const isMock = record.mode === "mock";
   const wrongCount = Object.values(record.results).filter((r) => !r.correct).length;
 
   const handleRetryWrong = () => {
@@ -28,7 +29,12 @@ export default function ResultPage() {
   };
 
   const handleStartOver = () => {
-    startQuiz(questions, record.pdfHash, "all");
+    startQuiz(questions, record.pdfHash, isMock ? "mock" : "all");
+    router.push("/quiz");
+  };
+
+  const handleSwitchMode = () => {
+    startQuiz(questions, record.pdfHash, isMock ? "all" : "mock");
     router.push("/quiz");
   };
 
@@ -49,7 +55,7 @@ export default function ResultPage() {
             onClick={handleStartOver}
             className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
           >
-            처음부터 다시 풀기
+            {isMock ? "모의고사 다시 보기" : "처음부터 다시 풀기"}
           </button>
 
           {wrongCount > 0 && (
@@ -60,6 +66,13 @@ export default function ResultPage() {
               틀린 문제만 다시 풀기 ({wrongCount}개)
             </button>
           )}
+
+          <button
+            onClick={handleSwitchMode}
+            className="w-full py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+          >
+            {isMock ? "전체 회독 모드로 전환" : "모의고사 모드로 전환"}
+          </button>
 
           <button
             onClick={handleNewFile}

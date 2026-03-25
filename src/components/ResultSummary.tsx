@@ -19,6 +19,7 @@ export default function ResultSummary({ record, questions }: ResultSummaryProps)
     })
     .filter(Boolean) as Question[];
 
+  const isMock = record.mode === "mock";
   const passingScore = 700;
   const score = percentage * 10; // rough mapping to 1000-point scale
   const passed = score >= passingScore;
@@ -26,17 +27,30 @@ export default function ResultSummary({ record, questions }: ResultSummaryProps)
   return (
     <div className="space-y-6">
       {/* Score card */}
-      <div className={`rounded-xl p-8 text-center ${passed ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}>
-        <p className="text-5xl font-bold mb-2" style={{ color: passed ? "#16a34a" : "#dc2626" }}>
-          {percentage}%
-        </p>
-        <p className="text-lg text-gray-600">
-          {totalAnswered}문제 중 {correctCount}문제 정답
-        </p>
-        <p className={`mt-2 text-sm font-medium ${passed ? "text-green-600" : "text-red-600"}`}>
-          {passed ? "합격 기준 충족 (700/1000)" : "합격 기준 미달 (700/1000)"}
-        </p>
-      </div>
+      {isMock ? (
+        <div className={`rounded-xl p-8 text-center ${passed ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}>
+          <p className="text-xs font-medium text-gray-400 mb-1">모의고사</p>
+          <p className="text-5xl font-bold mb-2" style={{ color: passed ? "#16a34a" : "#dc2626" }}>
+            {percentage}%
+          </p>
+          <p className="text-lg text-gray-600">
+            {totalAnswered}문제 중 {correctCount}문제 정답
+          </p>
+          <p className={`mt-2 text-sm font-medium ${passed ? "text-green-600" : "text-red-600"}`}>
+            {passed ? "합격 기준 충족 (700/1000)" : "합격 기준 미달 (700/1000)"}
+          </p>
+        </div>
+      ) : (
+        <div className="rounded-xl p-8 text-center bg-blue-50 border border-blue-200">
+          <p className="text-xs font-medium text-gray-400 mb-1">문제 회독</p>
+          <p className="text-5xl font-bold mb-2 text-blue-600">
+            {percentage}%
+          </p>
+          <p className="text-lg text-gray-600">
+            {totalAnswered}문제 중 {correctCount}문제 정답
+          </p>
+        </div>
+      )}
 
       {/* Wrong questions list */}
       {wrongQuestions.length > 0 && (

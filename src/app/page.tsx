@@ -8,6 +8,7 @@ import { extractTextFromPdf } from "@/lib/pdf-extract";
 import { parseQuestions } from "@/lib/pdf-parser";
 import { hashFile } from "@/lib/hash";
 import type { Question } from "@/lib/types";
+import { MOCK_EXAM_COUNT } from "@/lib/types";
 
 export default function UploadPage() {
   const router = useRouter();
@@ -59,7 +60,7 @@ export default function UploadPage() {
   }, []);
 
   const handleStart = useCallback(
-    (mode: "all" | "wrong-only") => {
+    (mode: "all" | "wrong-only" | "mock") => {
       const parsed = parsedQuestionsRef.current;
       const pdfHash = pdfHashRef.current;
       if (parsed.length === 0 || !pdfHash) return;
@@ -125,11 +126,19 @@ export default function UploadPage() {
                 </span>
               )}
             </p>
+            {parseResult.total >= MOCK_EXAM_COUNT && (
+              <button
+                onClick={() => handleStart("mock")}
+                className="w-full py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors"
+              >
+                모의고사 ({MOCK_EXAM_COUNT}문제)
+              </button>
+            )}
             <button
               onClick={() => handleStart("all")}
               className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
             >
-              시작하기
+              전체 회독 ({parseResult.total}문제)
             </button>
             {/* If same PDF as before, offer resume with new upload too */}
             {isSamePdf && answeredCount > 0 && (

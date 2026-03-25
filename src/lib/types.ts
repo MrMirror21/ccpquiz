@@ -11,7 +11,7 @@ export interface QuizRecord {
   totalCount: number;
   shuffledIds: number[];
   currentIndex: number;
-  mode: "all" | "wrong-only";
+  mode: QuizMode;
   results: {
     [questionId: number]: {
       selected: string[];
@@ -28,4 +28,6 @@ export interface QuizState {
   shuffledIds: number[];
 }
 
-export type QuizMode = "all" | "wrong-only";
+export type QuizMode = "all" | "wrong-only" | "mock";
+
+export const MOCK_EXAM_COUNT = 65;
