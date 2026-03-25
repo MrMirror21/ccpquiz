@@ -85,7 +85,7 @@ export default function QuestionCard({
         }
       }
     },
-    [submitted, editable, question.isMultiSelect, onSubmit]
+    [submitted, editable, question.isMultiSelect, selected, onSubmit]
   );
 
   const getOptionStyle = (label: string) => {
