@@ -8,6 +8,7 @@ interface QuestionCardProps {
   onSubmit: (selected: string[]) => boolean; // returns isCorrect
   onNext: () => void;
   isLast: boolean;
+  showFeedback?: boolean;
 }
 
 export default function QuestionCard({
@@ -15,6 +16,7 @@ export default function QuestionCard({
   onSubmit,
   onNext,
   isLast,
+  showFeedback = true,
 }: QuestionCardProps) {
   const [selected, setSelected] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState(false);
@@ -75,6 +77,12 @@ export default function QuestionCard({
         : "border-gray-200 hover:border-gray-300";
     }
 
+    if (!showFeedback) {
+      return selected.includes(label)
+        ? "border-blue-500 bg-blue-50"
+        : "border-gray-200 opacity-50";
+    }
+
     const isSelected = selected.includes(label);
     const isAnswer = question.correctAnswers.includes(label);
 
@@ -84,7 +92,7 @@ export default function QuestionCard({
   };
 
   const getIcon = (label: string) => {
-    if (!submitted) return null;
+    if (!submitted || !showFeedback) return null;
     const isSelected = selected.includes(label);
     const isAnswer = question.correctAnswers.includes(label);
 
@@ -138,9 +146,13 @@ export default function QuestionCard({
 
       {submitted && (
         <div className="flex items-center justify-between">
-          <p className={`font-medium ${isCorrect ? "text-green-600" : "text-red-600"}`}>
-            {isCorrect ? "정답입니다!" : "오답입니다."}
-          </p>
+          {showFeedback ? (
+            <p className={`font-medium ${isCorrect ? "text-green-600" : "text-red-600"}`}>
+              {isCorrect ? "정답입니다!" : "오답입니다."}
+            </p>
+          ) : (
+            <p className="font-medium text-gray-400">답안 제출 완료</p>
+          )}
           <button
             onClick={handleNext}
             className="px-6 py-2 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800 transition-colors"
