@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type { Question } from "@/lib/types";
 
 interface QuestionCardProps {
@@ -9,6 +9,8 @@ interface QuestionCardProps {
   onNext: () => void;
   isLast: boolean;
   showFeedback?: boolean;
+  editable?: boolean;
+  initialSelected?: string[];
 }
 
 export default function QuestionCard({
@@ -17,27 +19,24 @@ export default function QuestionCard({
   onNext,
   isLast,
   showFeedback = true,
+  editable = false,
+  initialSelected,
 }: QuestionCardProps) {
-  const [selected, setSelected] = useState<string[]>([]);
-  const [submitted, setSubmitted] = useState(false);
+  const [selected, setSelected] = useState<string[]>(initialSelected ?? []);
+  const [submitted, setSubmitted] = useState(!!initialSelected?.length);
   const [isCorrect, setIsCorrect] = useState(false);
 
-  const handleSelect = useCallback(
-    (label: string) => {
-      if (submitted) return;
-
-      if (question.isMultiSelect) {
-        setSelected((prev) =>
-          prev.includes(label)
-            ? prev.filter((l) => l !== label)
-            : [...prev, label]
-        );
-      } else {
-        setSelected([label]);
-      }
-    },
-    [submitted, question.isMultiSelect]
-  );
+  // Sync initialSelected when navigating back to a previously answered question
+  useEffect(() => {
+    if (initialSelected?.length) {
+      setSelected(initialSelected);
+      setSubmitted(true);
+    } else {
+      setSelected([]);
+      setSubmitted(false);
+    }
+    setIsCorrect(false);
+  }, [question.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = useCallback(() => {
     if (selected.length === 0) return;
@@ -53,46 +52,58 @@ export default function QuestionCard({
     onNext();
   }, [onNext]);
 
-  // Auto-submit for single-answer questions
   const handleOptionClick = useCallback(
     (label: string) => {
-      if (submitted) return;
+      // In editable mode, allow re-selection even after submitted
+      if (submitted && !editable) return;
 
       if (!question.isMultiSelect) {
-        setSelected([label]);
-        const correct = onSubmit([label]);
-        setIsCorrect(correct);
-        setSubmitted(true);
+        const newSelected = [label];
+        setSelected(newSelected);
+
+        if (editable) {
+          // In editable mode, save immediately but don't lock
+          onSubmit(newSelected);
+          setSubmitted(true);
+        } else {
+          // Normal mode: auto-submit and lock
+          const correct = onSubmit(newSelected);
+          setIsCorrect(correct);
+          setSubmitted(true);
+        }
       } else {
-        handleSelect(label);
+        setSelected((prev) => {
+          const next = prev.includes(label)
+            ? prev.filter((l) => l !== label)
+            : [...prev, label];
+          return next;
+        });
+        // In editable mode, mark as not yet saved when changing multi-select
+        if (editable && submitted) {
+          setSubmitted(false);
+        }
       }
     },
-    [submitted, question.isMultiSelect, onSubmit, handleSelect]
+    [submitted, editable, question.isMultiSelect, onSubmit]
   );
 
   const getOptionStyle = (label: string) => {
-    if (!submitted) {
-      return selected.includes(label)
+    const isSelected = selected.includes(label);
+
+    if (!submitted || !showFeedback || editable) {
+      return isSelected
         ? "border-blue-500 bg-blue-50"
         : "border-gray-200 hover:border-gray-300";
     }
 
-    if (!showFeedback) {
-      return selected.includes(label)
-        ? "border-blue-500 bg-blue-50"
-        : "border-gray-200 opacity-50";
-    }
-
-    const isSelected = selected.includes(label);
     const isAnswer = question.correctAnswers.includes(label);
-
     if (isAnswer) return "border-green-500 bg-green-50";
     if (isSelected && !isAnswer) return "border-red-500 bg-red-50";
     return "border-gray-200 opacity-50";
   };
 
   const getIcon = (label: string) => {
-    if (!submitted || !showFeedback) return null;
+    if (!submitted || !showFeedback || editable) return null;
     const isSelected = selected.includes(label);
     const isAnswer = question.correctAnswers.includes(label);
 
@@ -122,7 +133,7 @@ export default function QuestionCard({
           <button
             key={option.label}
             onClick={() => handleOptionClick(option.label)}
-            disabled={submitted}
+            disabled={submitted && !editable}
             className={`w-full text-left p-4 rounded-lg border-2 transition-colors flex items-center gap-3 ${getOptionStyle(option.label)}`}
           >
             <span className="font-medium text-gray-500 shrink-0">
@@ -134,17 +145,19 @@ export default function QuestionCard({
         ))}
       </div>
 
+      {/* Multi-select save button */}
       {question.isMultiSelect && !submitted && (
         <button
           onClick={handleSubmit}
           disabled={selected.length === 0}
           className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          제출하기
+          {editable ? "답안 저장" : "제출하기"}
         </button>
       )}
 
-      {submitted && (
+      {/* Normal mode: feedback + next */}
+      {submitted && !editable && (
         <div className="flex items-center justify-between">
           {showFeedback ? (
             <p className={`font-medium ${isCorrect ? "text-green-600" : "text-red-600"}`}>
