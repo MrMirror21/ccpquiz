@@ -34,6 +34,7 @@ interface QuizContextValue {
   resumeQuiz: () => boolean;
   submitAnswer: (questionId: number, selected: string[]) => boolean;
   nextQuestion: () => boolean; // returns false if last question
+  goToQuestion: (index: number) => void;
   resetQuiz: () => void;
   getCurrentQuestion: () => Question | null;
 }
@@ -162,6 +163,20 @@ export function QuizProvider({ children }: { children: ReactNode }) {
     return true;
   }, [currentIndex, shuffledIds.length]);
 
+  const goToQuestion = useCallback(
+    (index: number) => {
+      if (index < 0 || index >= shuffledIds.length) return;
+      setCurrentIndex(index);
+      setRecord((prev) => {
+        if (!prev) return prev;
+        const updated = { ...prev, currentIndex: index };
+        saveRecord(updated);
+        return updated;
+      });
+    },
+    [shuffledIds.length]
+  );
+
   const getCurrentQuestion = useCallback((): Question | null => {
     if (shuffledIds.length === 0) return null;
     const questionId = shuffledIds[currentIndex];
@@ -190,6 +205,7 @@ export function QuizProvider({ children }: { children: ReactNode }) {
         resumeQuiz,
         submitAnswer,
         nextQuestion,
+        goToQuestion,
         resetQuiz,
         getCurrentQuestion,
       }}
