@@ -72,14 +72,15 @@ export default function QuestionCard({
           setSubmitted(true);
         }
       } else {
-        setSelected((prev) => {
-          const next = prev.includes(label)
-            ? prev.filter((l) => l !== label)
-            : [...prev, label];
-          return next;
-        });
-        // In editable mode, mark as not yet saved when changing multi-select
-        if (editable && submitted) {
+        const next = selected.includes(label)
+          ? selected.filter((l) => l !== label)
+          : [...selected, label];
+        setSelected(next);
+
+        if (editable && next.length > 0) {
+          onSubmit(next);
+          setSubmitted(true);
+        } else if (editable && next.length === 0) {
           setSubmitted(false);
         }
       }
@@ -145,14 +146,14 @@ export default function QuestionCard({
         ))}
       </div>
 
-      {/* Multi-select save button */}
-      {question.isMultiSelect && !submitted && (
+      {/* Multi-select submit button (normal mode only) */}
+      {question.isMultiSelect && !submitted && !editable && (
         <button
           onClick={handleSubmit}
           disabled={selected.length === 0}
           className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          {editable ? "답안 저장" : "제출하기"}
+          제출하기
         </button>
       )}
 
