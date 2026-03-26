@@ -72,7 +72,10 @@ export default function QuestionCard({
           setSubmitted(true);
         }
       } else {
-        const next = selected.includes(label)
+        const isAlreadySelected = selected.includes(label);
+        // Block new selection when max answers reached; only allow deselect
+        if (!isAlreadySelected && selected.length >= question.correctAnswers.length) return;
+        const next = isAlreadySelected
           ? selected.filter((l) => l !== label)
           : [...selected, label];
         setSelected(next);
