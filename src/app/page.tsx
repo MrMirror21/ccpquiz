@@ -106,7 +106,7 @@ export default function UploadPage() {
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900">AWS CCP Quiz</h1>
           <p className="mt-2 text-gray-500">CLF-C02 문제은행</p>
-          <p className="mt-1 text-xs text-gray-700">v0.7.2 </p>
+          <p className="mt-1 text-xs text-gray-700">v0.7.3 </p>
           <p className="mt-1 text-sm text-gray-700">
             에러, 버그 제보 - woojhan@koreanair.com
           </p>
